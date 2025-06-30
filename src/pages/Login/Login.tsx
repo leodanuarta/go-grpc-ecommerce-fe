@@ -1,8 +1,10 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { RpcError } from '@protobuf-ts/runtime-rpc';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as yup from 'yup';
+import { getAuthClient } from '../../api/grpc/client';
 import FormInput from '../../components/FormInput/FormInput';
 
 const loginSchema = yup.object().shape({
@@ -15,18 +17,60 @@ interface LoginFormValues{
     password: string;
 }
 const Login = () => {
+    const navigate = useNavigate()
     const form = useForm<LoginFormValues>({
         resolver: yupResolver(loginSchema),
     });
 
-    const submitHandler = (values: LoginFormValues) => {
-        console.log(values)
-        Swal.fire({
-            icon: 'success',
-            title: 'Login Success',
-            confirmButtonText: 'OK',
-        })
+    const submitHandler = async (values: LoginFormValues) => {
+        try{
+            const client = getAuthClient()
+            
+            const res = await client.login({
+                email: values.email,
+                password: values.password,
+            })
+
+            if  (res.response.base?.isError ?? true) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Login Gagal',
+                    text: 'Silahkan coba beberapa saat lagi',
+                    confirmButtonText: 'OK',
+                })
+            }
+
+            // set to local storage
+            localStorage.setItem('access_token',res.response.accessToken)
+        
+            navigate('/')
+            Swal.fire({
+                icon: 'success',
+                title: 'Login Success',
+                confirmButtonText: 'OK',
+            })
+        }catch(e){
+            if (e instanceof RpcError){
+                if (e.code === "UNAUTHENTICATED"){
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Login Gagal',
+                        text: 'Email atau password salah',
+                        confirmButtonText: 'OK',
+                    })
+                    return
+                }
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Gagal',
+                text: 'Silahkan coba beberapa saat lagi',
+                confirmButtonText: 'OK',
+            })
+        }
     }
+
     return (
         <div className="login-section">
             <div className="container">
@@ -47,7 +91,7 @@ const Login = () => {
                                     errors={form.formState.errors}
                                     name='password'
                                     register={form.register}
-                                    type='text'
+                                    type='password'
                                     placeholder='Kata sandi'
                                 />
 
