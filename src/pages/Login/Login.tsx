@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import * as yup from 'yup';
 import { getAuthClient } from '../../api/grpc/client';
 import FormInput from '../../components/FormInput/FormInput';
+import { useAuthStore } from '../../store/auth';
 
 const loginSchema = yup.object().shape({
     email: yup.string().email('Email tidak valid').required('Email wajid diisi'),
@@ -18,6 +19,9 @@ interface LoginFormValues{
 }
 const Login = () => {
     const navigate = useNavigate()
+
+    const loginUser = useAuthStore(state => state.login);
+
     const form = useForm<LoginFormValues>({
         resolver: yupResolver(loginSchema),
     });
@@ -25,7 +29,7 @@ const Login = () => {
     const submitHandler = async (values: LoginFormValues) => {
         try{
             const client = getAuthClient()
-            
+
             const res = await client.login({
                 email: values.email,
                 password: values.password,
@@ -42,13 +46,23 @@ const Login = () => {
 
             // set to local storage
             localStorage.setItem('access_token',res.response.accessToken)
-        
-            navigate('/')
+            // set login ke global variabel
+            loginUser(res.response.accessToken)
+
             Swal.fire({
                 icon: 'success',
                 title: 'Login Success',
                 confirmButtonText: 'OK',
             })
+
+            // apabila admin, navigate ke /admin/dashbord
+            // else, navigate ke /
+            if (useAuthStore.getState().role === "admin"){
+                navigate('/admin/dashboard')
+            }else{
+                navigate('/')
+            }
+
         }catch(e){
             if (e instanceof RpcError){
                 if (e.code === "UNAUTHENTICATED"){
