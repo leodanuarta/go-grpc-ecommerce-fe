@@ -1,11 +1,11 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as yup from 'yup';
 import { getAuthClient } from '../../api/grpc/client';
 import FormInput from '../../components/FormInput/FormInput';
+import useGrpcApi from '../../hooks/useGrpcApi';
 
 const registerSchema = yup.object().shape({
     full_name: yup.string().required('Nama lengkap wajib diisi'),
@@ -23,42 +23,28 @@ interface RegisterFormValues {
 }
 
 const Register =  () => {
+    const registerApi = useGrpcApi();
     const navigate = useNavigate()
-    const [submitLoading, setSubmitLoading] = useState<boolean>(false);
     const form = useForm<RegisterFormValues>({
         resolver: yupResolver(registerSchema),
     });
 
     const submitHandler = async (values: RegisterFormValues) => {
-        try{
-            setSubmitLoading(true)
-            const res = await getAuthClient().register({
+            await registerApi.callApi(getAuthClient().register({
                 email: values.email,
                 fullName: values.full_name,
                 password: values.password,
                 passwordConfirmation: values.password_confirmation,
-            });
-
-            if (res.response.base?.isError ?? true){
-                // case email duplicate
-                if (res.response.base?.message === "User already exists"){
+            }), {
+                useDefaultError: false,
+                defaultError(){
                     Swal.fire({
-                    title: 'Registrasi Gagal',
-                    text: 'Email sudah terdaftar di dalam sistem',
-                    icon: 'error',
+                        title: 'Registrasi Gagal',
+                        text: 'Email sudah terdaftar di dalam sistem',
+                        icon: 'error',
                     })
-
-                    return
                 }
-
-                Swal.fire({
-                    title: 'Terjadi kesalahan',
-                    text: 'Mohon coba beberapa saat lagi',
-                    icon: 'error',
-                })
-                
-                return
-            }
+            })
 
             Swal.fire({
                 title: 'Registrasi Berhasil',
@@ -67,10 +53,6 @@ const Register =  () => {
             })
 
             navigate('/login')
-        }finally{
-            setSubmitLoading(false)
-        }
-       
     }
     return (
         <div className="login-section">
@@ -86,7 +68,7 @@ const Register =  () => {
                                     register={form.register}
                                     type='text'
                                     placeholder='Nama Lengkap'
-                                    disabled={submitLoading}
+                                    disabled={registerApi.isLoading}
                                 />
                                 <FormInput<RegisterFormValues>
                                     errors={form.formState.errors}
@@ -94,7 +76,7 @@ const Register =  () => {
                                     register={form.register}
                                     type='text'
                                     placeholder='Alamat Email'
-                                    disabled={submitLoading}
+                                    disabled={registerApi.isLoading}
                                 />
                                 <FormInput<RegisterFormValues>
                                     errors={form.formState.errors}
@@ -102,7 +84,7 @@ const Register =  () => {
                                     register={form.register}
                                     type='password'
                                     placeholder='Kata Sandi'
-                                    disabled={submitLoading}
+                                    disabled={registerApi.isLoading}
                                 />
                                 <FormInput<RegisterFormValues>
                                     errors={form.formState.errors}
@@ -110,10 +92,10 @@ const Register =  () => {
                                     register={form.register}
                                     type='password'
                                     placeholder='Konfirmasi Kata Sandi'
-                                    disabled={submitLoading}
+                                    disabled={registerApi.isLoading}
                                 />
                                 <div className="form-group">
-                                    <button type="submit" className="btn btn-primary btn-block" disabled={submitLoading}>Buat Akun</button>
+                                    <button type="submit" className="btn btn-primary btn-block" disabled={registerApi.isLoading}>Buat Akun</button>
                                 </div>
                                 <div className="text-center mt-4">
                                     <p>Sudah punya akun? <Link to="/login" className="text-primary">Masuk di sini</Link></p>

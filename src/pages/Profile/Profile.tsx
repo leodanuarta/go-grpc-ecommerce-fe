@@ -1,16 +1,14 @@
-import { RpcError } from '@protobuf-ts/runtime-rpc';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
 import { getAuthClient } from '../../api/grpc/client';
 import PlainHeroSection from '../../components/PlainHeroSection/PlainHeroSection';
-import { useAuthStore } from '../../store/auth';
+import useGrpcApi from '../../hooks/useGrpcApi';
 import { convertTimestampToDate } from '../../utils/date';
 
 function Profile() {
+    const profileApi = useGrpcApi();
     const location = useLocation();
     const navigate = useNavigate();
-    const logoutUser = useAuthStore(state => state.logout)
     const [fullName, setFullName] = useState<string>();
     const [email, setEmail] = useState<string>();
     const [memberSince, setMemberSince] = useState<string>();
@@ -24,50 +22,12 @@ function Profile() {
 
     useEffect(() => {
         const fetchProfile = async() => {
-            try {
-                const resp = await getAuthClient().getProfile({})
+            const resp = await profileApi.callApi(getAuthClient().getProfile({}))
+            setFullName(resp.response.fullName)
+            setEmail(resp.response.email)
 
-                if (resp.response.base?.isError ?? true){
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Terjadi Kesalahan',
-                        text: 'Silahkan coba beberapa saat lagi',
-                    })
-
-                    return
-                }
-
-                setFullName(resp.response.fullName)
-                setEmail(resp.response.email)
-
-                const datStr = convertTimestampToDate(resp.response.memberSince)
-                setMemberSince(datStr)
-            
-            }catch(e){
-                if (e instanceof RpcError){
-                    if (e.code === "UNAUTHENTICATED"){
-                        logoutUser();
-                        localStorage.removeItem('access_token');
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Sesi Telah Berakhir',
-                            text: 'Silahkan login ulang kembali',
-                            confirmButtonText: 'OK',
-                        })
-                        navigate('/login')
-                        return
-                    }
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Terjadi Kesalahan',
-                        text: 'Silahkan coba beberapa saat lagi',
-                        confirmButtonText: 'OK',
-                    })
-
-                    return
-                }
-            }
+            const dateStr = convertTimestampToDate(resp.response.memberSince)
+            setMemberSince(dateStr)
         }
 
         fetchProfile();

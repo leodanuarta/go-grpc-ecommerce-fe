@@ -1,11 +1,11 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { RpcError } from '@protobuf-ts/runtime-rpc';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as yup from 'yup';
 import { getAuthClient } from '../../api/grpc/client';
 import FormInput from '../../components/FormInput/FormInput';
+import useGrpcApi from '../../hooks/useGrpcApi';
 import { useAuthStore } from '../../store/auth';
 
 const loginSchema = yup.object().shape({
@@ -18,6 +18,7 @@ interface LoginFormValues{
     password: string;
 }
 const Login = () => {
+    const loginApi = useGrpcApi();
     const navigate = useNavigate()
 
     const loginUser = useAuthStore(state => state.login);
@@ -27,61 +28,38 @@ const Login = () => {
     });
 
     const submitHandler = async (values: LoginFormValues) => {
-        try{
-            const client = getAuthClient()
-
-            const res = await client.login({
-                email: values.email,
-                password: values.password,
-            })
-
-            if  (res.response.base?.isError ?? true) {
+        const res = await loginApi.callApi(getAuthClient().login({
+            email: values.email,
+            password: values.password,
+        }), {
+            useDefaultAuthError: false,
+            defaultAuthError() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Login Gagal',
-                    text: 'Silahkan coba beberapa saat lagi',
+                    text: 'Email atau password salah',
                     confirmButtonText: 'OK',
                 })
-            }
+            },
+        })
 
-            // set to local storage
-            localStorage.setItem('access_token',res.response.accessToken)
-            // set login ke global variabel
-            loginUser(res.response.accessToken)
+        // set to local storage
+        localStorage.setItem('access_token',res.response.accessToken)
+        // set login ke global variabel
+        loginUser(res.response.accessToken)
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Login Success',
-                confirmButtonText: 'OK',
-            })
+        Swal.fire({
+            icon: 'success',
+            title: 'Login Success',
+            confirmButtonText: 'OK',
+        })
 
-            // apabila admin, navigate ke /admin/dashbord
-            // else, navigate ke /
-            if (useAuthStore.getState().role === "admin"){
-                navigate('/admin/dashboard')
-            }else{
-                navigate('/')
-            }
-
-        }catch(e){
-            if (e instanceof RpcError){
-                if (e.code === "UNAUTHENTICATED"){
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Login Gagal',
-                        text: 'Email atau password salah',
-                        confirmButtonText: 'OK',
-                    })
-                    return
-                }
-            }
-
-            Swal.fire({
-                icon: 'error',
-                title: 'Login Gagal',
-                text: 'Silahkan coba beberapa saat lagi',
-                confirmButtonText: 'OK',
-            })
+        // apabila admin, navigate ke /admin/dashbord
+        // else, navigate ke /
+        if (useAuthStore.getState().role === "admin"){
+            navigate('/admin/dashboard')
+        }else{
+            navigate('/')
         }
     }
 
