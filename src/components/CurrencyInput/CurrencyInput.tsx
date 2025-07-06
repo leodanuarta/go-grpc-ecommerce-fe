@@ -33,6 +33,9 @@ function CurrencyInput<T extends Record<string, any>>(props: CurrencyInputProps<
             thousandSeparator="."
             decimalSeparator=","
             prefix="Rp"
+            placeholder={props.placeholder}
+            allowNegative={false}
+            decimalScale={2}
             {...fieldProps}
             getInputRef={ref}
             disabled={props.disabled}
