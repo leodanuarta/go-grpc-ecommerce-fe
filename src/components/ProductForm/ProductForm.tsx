@@ -1,6 +1,7 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
 import * as yup from 'yup';
+import { type ProductFormValues } from "../../types/product";
 import CurrencyInput from "../CurrencyInput/CurrencyInput";
 import FormInput from "../FormInput/FormInput";
 
@@ -20,20 +21,19 @@ const createProductSchema = yup.object().shape({
 
 })
 
-interface ProductFormValues{
-    name: string, 
-    price: number,
-    description?: string,
-    image: FileList,
+interface ProductFormProps{
+    onSubmit: (values: ProductFormValues) => void;
+    disabled?: boolean;
 }
 
-function ProductForm() {
+
+function ProductForm(props : ProductFormProps) {
     const form = useForm<ProductFormValues>({
         resolver: yupResolver(createProductSchema)
     })
 
     const submitHandler = (values: ProductFormValues) => {
-        console.log(values)
+        props.onSubmit(values)
     }
 
     return (
@@ -47,6 +47,7 @@ function ProductForm() {
                     label="Nama Produk"
                     placeholder="Nama Produk"
                     lableRequired
+                    disabled={props.disabled}
                 />
 
                 <CurrencyInput<ProductFormValues>
@@ -56,6 +57,17 @@ function ProductForm() {
                     label="Harga"
                     placeholder="Harga Produk"
                     lableRequired
+                    disabled={props.disabled}
+                />
+
+                <FormInput<ProductFormValues>
+                    errors={form.formState.errors}
+                    name="description"
+                    register={form.register}
+                    type="textarea"
+                    label="Deskripsi Produk"
+                    placeholder="Deskripsi Produk ..."
+                    disabled={props.disabled}
                 />
 
                 <FormInput<ProductFormValues>
@@ -66,19 +78,11 @@ function ProductForm() {
                     label="Gambar Produk"
                     placeholder="Gambar Produk"
                     lableRequired
-                />
-
-                <FormInput<ProductFormValues>
-                    errors={form.formState.errors}
-                    name="description"
-                    register={form.register}
-                    type="textarea"
-                    label="Deskripsi Produk"
-                    placeholder="Deskripsi Produk ..."
+                    disabled={props.disabled}
                 />
 
                 <div className="form-group">
-                    <button type="submit" className="btn btn-primary">Simpan Produk</button>
+                    <button type="submit" disabled={props.disabled}  className="btn btn-primary">Simpan Produk</button>
                 </div>
             </form>
         </div>
