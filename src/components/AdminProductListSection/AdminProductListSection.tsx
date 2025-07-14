@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { getProductClient } from '../../api/grpc/client';
 import useGrpcApi from '../../hooks/useGrpcApi';
 import useSortableHeader from '../../hooks/useSortableHeader';
@@ -18,15 +19,40 @@ interface Product {
 
 
 function AdminProductListSection() {
+    const deleteApi = useGrpcApi();
     const listAPI = useGrpcApi();
     const { handleSort, sortConfig } = useSortableHeader();
     const [items, setItems] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [refreshFlag, setRefreshFlag] = useState<boolean>(true);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
     };
+
+    const deleteHandler = async (id: string) => {
+        const deleteAlert = await Swal.fire({
+            title: 'Ingin Hapus Produk ?',
+            text: 'Produk yang dihapus tidak dapat dikembalikan',
+            confirmButtonText: 'Ya',
+            showCancelButton: true,
+            cancelButtonText: 'Batal',
+            icon: 'question',
+        });
+
+        if(deleteAlert.isConfirmed){
+            await deleteApi.callApi(getProductClient().deleteProduct({
+                id: id,
+            }));;
+
+            Swal.fire({
+            title: 'Hapus Produk Success',
+            icon: 'success',
+        });
+        setRefreshFlag(value => !value)
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -53,7 +79,7 @@ function AdminProductListSection() {
         }
 
         fetchData();
-    }, [currentPage, sortConfig.direction, sortConfig.key])
+    }, [currentPage, sortConfig.direction, sortConfig.key, refreshFlag])
 
     return (
         <div>
@@ -100,7 +126,7 @@ function AdminProductListSection() {
                                 <td>{i.description}</td>
                                 <td>
                                     <button className="btn btn-secondary me-2">Edit</button>
-                                    <button className="btn">Hapus</button>
+                                    <button className="btn" onClick={() => deleteHandler(i.id)}>Hapus</button>
                                 </td>
                             </tr>
                         ))}
