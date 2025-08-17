@@ -1,4 +1,5 @@
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from 'yup';
 import { type ProductFormValues } from "../../types/product";
@@ -17,24 +18,41 @@ const createProductSchema = yup.object().shape({
         .test('fileType', 'Format gambar tidak valid', (filelist) => {
             return filelist && filelist.length > 0  ? ["image/jpeg", "image/png"].includes(filelist[0].type) : true
         })
+})
 
-
+const editProductSchema = yup.object().shape({
+    name: yup.string().required('Nama produk wajib diisi'),
+    price: yup.number().required('Harga produk wajib diisi').typeError('Harga produk tidak valid').moreThan(0, 'Harga produk harus lebih dari 0'),
+    description: yup.string(),
+    image: yup.mixed<FileList>().required('Gambar produk wajid diisi')
+        .test('fileType', 'Format gambar tidak valid', (filelist) => {
+            return filelist && filelist.length > 0  ? ["image/jpeg", "image/png"].includes(filelist[0].type) : true
+        })
 })
 
 interface ProductFormProps{
     onSubmit: (values: ProductFormValues) => void;
     disabled?: boolean;
+    defaultValues?: ProductFormValues;
+    isEdit?: boolean;
 }
 
 
 function ProductForm(props : ProductFormProps) {
     const form = useForm<ProductFormValues>({
-        resolver: yupResolver(createProductSchema)
+        resolver: yupResolver(props.isEdit ? editProductSchema : createProductSchema),
+        defaultValues: props.defaultValues,
     })
 
     const submitHandler = (values: ProductFormValues) => {
         props.onSubmit(values)
     }
+
+    useEffect(() => {
+        if (props.defaultValues){
+            form.reset(props.defaultValues);
+        }
+    }, [props.defaultValues]);
 
     return (
         <div className="p-4 p-lg-5 border bg-white">
@@ -69,6 +87,10 @@ function ProductForm(props : ProductFormProps) {
                     placeholder="Deskripsi Produk ..."
                     disabled={props.disabled}
                 />
+
+                {props.defaultValues?.imageUrl && 
+                    <img className="w-50"  src={props.defaultValues.imageUrl} alt="product_image" />          
+                }
 
                 <FormInput<ProductFormValues>
                     errors={form.formState.errors}

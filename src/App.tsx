@@ -14,6 +14,7 @@ import AuthLayout from './layouts/AuthLayout/AuthLayout';
 import ECommerceLayout from './layouts/ECommerceLayout/ECommerceLayout';
 import AdminCreateProduct from './pages/AdminCreateProduct/AdminCreateProduct';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
+import AdminEditProduct from './pages/AdminEditProduct/AdminEditProduct';
 import AdminOrderDetail from './pages/AdminOrderDetail/AdminOrderDetail';
 import AdminProfile from './pages/AdminProfile/AdminProfile';
 import Cart from './pages/Cart/Cart';
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
             },
             { path: "order", element: <AdminOrderDetail /> },
             { path: "products/create", element: <AdminCreateProduct /> },
+            { path: "products/:id/edit", element: <AdminEditProduct /> },
         ]
     }
 ])
